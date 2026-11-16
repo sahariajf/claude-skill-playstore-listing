@@ -1,0 +1,38 @@
+{
+  "app": {
+    "name": "MyApp",
+    "package": "com.example.myapp",
+    "icon": "../assets/icon.png",
+    "about": "a money tracker for students"
+  },
+  "brand": {
+    "background": "#0B1B3A",
+    "accent": "#14B8A6",
+    "text": null,
+    "phone": "#111418"
+  },
+  "fonts": {
+    "bold": null,
+    "regular": null
+  },
+  "frame": "android",
+  "uppercase": true,
+  "size": [1080, 1920],
+  "status_bar": { "clean": true },
+  "prompt_style": "clean, modern, soft depth and shadows, premium app-store look",
+  "screenshots": [
+    {
+      "slug": "01-track-spending",
+      "headline": "Track every taka",
+      "sub": "See where the money goes, day by day",
+      "raw": "raw/01-home.png",
+      "popout": null,
+      "idea": "the spending card floats out of the phone",
+      "extra": []
+    }
+  ],
+  "feature_graphic": {
+    "tagline": "Money made simple",
+    "screenshots": []
+  }
+}
