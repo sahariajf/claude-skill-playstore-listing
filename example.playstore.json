@@ -5,34 +5,73 @@
     "icon": "../assets/icon.png",
     "about": "a money tracker for students"
   },
+  "language": "en-US",
   "brand": {
     "background": "#0B1B3A",
     "accent": "#14B8A6",
+    "highlight": null,
     "text": null,
     "phone": "#111418"
   },
   "fonts": {
     "bold": null,
-    "regular": null
+    "regular": null,
+    "accent": null
   },
   "frame": "android",
-  "uppercase": true,
+  "uppercase": false,
   "size": [1080, 1920],
+  "texture": { "grain": 0.3, "pattern": null },
+  "panorama": false,
   "status_bar": { "clean": true },
   "prompt_style": "clean, modern, soft depth and shadows, premium app-store look",
+  "devices": {
+    "tablet10": { "size": [1440, 2560], "text": false }
+  },
   "screenshots": [
     {
       "slug": "01-track-spending",
-      "headline": "Track every taka",
+      "headline": "Track every *taka*",
       "sub": "See where the money goes, day by day",
+      "layout": "top",
       "raw": "raw/01-home.png",
       "popout": null,
       "idea": "the spending card floats out of the phone",
       "extra": []
+    },
+    {
+      "slug": "02-works-offline",
+      "headline": "Works _without internet_",
+      "layout": "stats",
+      "raw": "raw/02-offline.png",
+      "stats": [
+        { "value": "0 MB", "label": "needed to save an expense" },
+        { "value": "Auto", "label": "sync when you're back online" }
+      ]
+    },
+    {
+      "slug": "03-shared-budget",
+      "headline": "One *shared* budget",
+      "sub": "Everyone adds, everyone sees",
+      "layout": "bubble",
+      "raw": "raw/03-shared.png",
+      "callouts": [
+        { "text": "Rent split 4 ways" },
+        { "kind": "chip", "text": "Live for everyone" }
+      ]
+    },
+    {
+      "slug": "04-monthly-report",
+      "headline": "Your month\n*at a glance*",
+      "layout": "tilted",
+      "raw": "raw/04-report.png"
     }
   ],
   "feature_graphic": {
-    "tagline": "Money made simple",
+    "tagline": "Money made *simple*",
+    "alt_text": "MyApp icon next to its spending and report screens",
+    "video": false,
     "screenshots": []
-  }
+  },
+  "locales": {}
 }

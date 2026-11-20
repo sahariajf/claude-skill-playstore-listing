@@ -91,7 +91,7 @@ Fill in what the code/README tells you, mark the rest "to do":
   reporting, location…), whether it is shared, encrypted in transit, can be deleted (account delete URL).
 - **Content rating** questionnaire, **target audience**, **ads** declaration, **app access**
   (test login for reviewers if the app needs sign-in — the user creates it; never invent credentials).
-- **Graphics**: 512×512 icon, 1024×500 feature graphic, 4–8 phone screenshots (`playstore-screenshots`),
+- **Graphics**: 512×512 icon, 1024×500 feature graphic (with alt text), 4–8 phone screenshots, plus tablet/Chromebook sets if the app supports large screens (`playstore-screenshots`),
   optional YouTube promo video.
 - **Translations**: the main audience's language (e.g. `bn-BD`) — offer to write it with its own
   local keywords (not a word-for-word translation).

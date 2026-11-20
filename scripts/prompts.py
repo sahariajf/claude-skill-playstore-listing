@@ -28,7 +28,7 @@ import shutil
 import sys
 from pathlib import Path
 
-from common import load_config, prepare_raw
+from common import DEVICES, device_info, load_config, marked_words, out_dir, plain_text, prepare_raw, raw_of
 
 BANNED = 'No other text, no badges, no prices, no "#1", "best", "free" or "download now".'
 
@@ -62,13 +62,22 @@ def _quote(s: str | None) -> str:
     return (s or "").replace('"', "'")
 
 
-def screen_prompt(cfg: dict, item: dict, files: dict) -> str:
+def screen_prompt(cfg: dict, item: dict, files: dict, size=(1080, 1920), work: str = "work") -> str:
     app, brand = cfg.get("app", {}), cfg.get("brand", {})
     bg = item.get("background", brand.get("background", "#111827"))
     acc = item.get("accent", brand.get("accent", "#3B82F6"))
     look = cfg.get("prompt_style", "clean, modern, soft depth and shadows, premium app-store look")
-    head = item["headline"].upper() if cfg.get("uppercase", True) else item["headline"]
-    sub = f' and the sub line "{_quote(item["sub"])}"' if item.get("sub") else ""
+    head = plain_text(item["headline"])
+    head = head.upper() if cfg.get("uppercase", True) else head
+    sub = f' and the sub line "{_quote(plain_text(item["sub"]))}"' if item.get("sub") else ""
+    marked = marked_words(item["headline"])
+    if marked:
+        sub += (" (make " + ", ".join(f'"{_quote(m)}"' for m in marked)
+                + " stand out in the accent colour or an elegant italic)")
+    w, h = size
+    shape = f"{'portrait 9:16' if h > w else 'landscape 16:9'} ({w}x{h})"
+    lang = cfg.get("language", "en-US")
+    lang_note = "" if lang.startswith("en") else f"\nAll text is in {lang}; keep it exactly as written."
     idea = f"\nIdea: {item['idea']}" if item.get("idea") else ""
     extra = ""
     if files.get("extra"):
@@ -83,34 +92,34 @@ def screen_prompt(cfg: dict, item: dict, files: dict) -> str:
             "### A. Layout locked (recommended)\n\n"
             f"Attach: `{files['layout']}`, `{files['screen']}`\n\n"
             "```text\n"
-            "Polish this Google Play screenshot, portrait 9:16 (1080x1920).\n"
+            f"Polish this Google Play screenshot, {shape}.\n"
             f'Image 1 is the exact layout: keep the headline "{_quote(head)}"{sub}, '
             "same spelling, same phone position and size.\n"
             "Image 2 is the real app screen inside the phone: do not redraw, retype or change it.\n"
             f"Only improve the background, light and headline style. Brand colours {bg} and {acc}; {look}."
-            f"{idea}{extra}\n"
+            f"{idea}{extra}{lang_note}\n"
             f"Keep all text inside the middle 80% of the width. {BANNED}\n"
             "```\n\n"
-            f"Save the result as `work/{item['slug']}/ai-raw-1.png` (then -2, -3 …).\n")
+            f"Save the result as `{work}/{item['slug']}/ai-raw-1.png` (then -2, -3 …).\n")
     attach_b = [f for f in (files.get("screen"), files.get("logo")) if f] + files.get("extra", [])
     parts.append(
         "### B. Free design\n\n"
         f"Attach: {', '.join(f'`{f}`' for f in attach_b)}\n\n"
         "```text\n"
-        f'Design a Google Play screenshot, portrait 9:16 (1080x1920), for the app "{_quote(app.get("name", "App"))}"{about}.\n'
+        f'Design a Google Play screenshot, {shape}, for the app "{_quote(app.get("name", "App"))}"{about}.\n'
         f'Top: bold headline "{_quote(head)}"{sub.replace(" and the sub line", ", smaller sub line")}.\n'
         f"Below: image 1 shown inside {frame}, large, bleeding off the bottom edge. "
         "Keep the screen exactly as given: do not redraw, retype or change it.\n"
         f"Brand colours {bg} and {acc}; {look}."
         + (" Use the logo (image 2) only if it fits naturally." if files.get("logo") else "")
-        + f"{idea}{extra}\n"
+        + f"{idea}{extra}{lang_note}\n"
         f"Keep all text inside the middle 80% of the width. {BANNED}\n"
         "```\n\n"
-        f"Save the result as `work/{item['slug']}/ai-free-1.png`. Check the app screen was not changed.\n")
+        f"Save the result as `{work}/{item['slug']}/ai-free-1.png`. Check the app screen was not changed.\n")
     return "\n".join(parts)
 
 
-def feature_prompt(cfg: dict, files: dict) -> str:
+def feature_prompt(cfg: dict, files: dict, work: str = "work") -> str:
     app, brand = cfg.get("app", {}), cfg.get("brand", {})
     fg = cfg.get("feature_graphic", {})
     look = cfg.get("prompt_style", "clean, modern, soft depth and shadows, premium app-store look")
@@ -119,22 +128,24 @@ def feature_prompt(cfg: dict, files: dict) -> str:
     attach = ([files["logo"]] if files.get("logo") else []) + shots
     logo_i = 1 if files.get("logo") else 0
     phones = (f"images {logo_i + 1}-{logo_i + n}" if n > 1 else f"image {logo_i + 1}") if n else ""
-    tag = f' and the line "{_quote(fg["tagline"])}"' if fg.get("tagline") else ""
+    tag = f' and the line "{_quote(plain_text(fg["tagline"]))}"' if fg.get("tagline") else ""
     about = f' ({app["about"]})' if app.get("about") else ""
     return (
         "## feature-graphic\n\n"
         f"Attach: {', '.join(f'`{f}`' for f in attach)}\n\n"
         "```text\n"
         f'Design a Google Play feature graphic, landscape, exactly 1024x500, for the app "{_quote(app.get("name", "App"))}"{about}.\n'
-        + (f"Left: the app icon (image 1), " if logo_i else "Left: ")
+        + ("Left: the app icon (image 1), " if logo_i else "Left: ")
         + f'the name "{_quote(app.get("name", "App"))}" in bold{tag}.\n'
-        + (f"Right: {phones} inside modern Android phones (punch-hole camera, no iPhone notch), "
-           "bleeding off the bottom; keep the screens exactly as given.\n" if n else "")
-        + f"Brand colours {brand.get('background', '#111827')} and {brand.get('accent', '#3B82F6')}; {look}.\n"
-        "Keep the centre free of important details (Play may put a play button there) "
-        f"and keep text away from the edges. {BANNED}\n"
+        + (f"Right: {phones} as slightly tilted floating cards (no device frames), "
+           "keep the screens exactly as given.\n" if n else "")
+        + f"Brand colours {brand.get('background', '#111827')} and {brand.get('accent', '#3B82F6')}; {look}. "
+        "Avoid a plain white, black or grey background.\n"
+        "Keep the icon, name and line well away from the edges (Play crops them)"
+        + (" and keep the centre free for the video play button" if fg.get("video") else "")
+        + f". {BANNED}\n"
         "```\n\n"
-        "Save the result as `work/feature-graphic/ai-1.png`, then pick it "
+        f"Save the result as `{work}/feature-graphic/ai-1.png`, then pick it "
         "(feature_graphic.py --pick checks it is 1024x500).\n")
 
 
@@ -144,10 +155,15 @@ def main() -> None:
     ap.add_argument("--slug", help="only this screenshot")
     ap.add_argument("--style", default="gradient", help="which scaffold to use as the layout (flat/gradient/popout)")
     ap.add_argument("--no-feature", action="store_true", help="skip the feature graphic prompt")
+    ap.add_argument("--locale", help='a language from "locales": writes prompts/<locale>/')
+    ap.add_argument("--device", default="phone", choices=sorted(DEVICES), help="writes prompts/<device>/")
     a = ap.parse_args()
 
-    cfg, root = load_config(a.config)
-    out_root = root / "prompts"
+    cfg, root = load_config(a.config, a.locale)
+    size = device_info(cfg, a.device)["size"]
+    work = out_dir(root, "work", cfg, a.device)
+    work_rel = work.relative_to(root).as_posix()
+    out_root = out_dir(root, "prompts", cfg, a.device)
     out_root.mkdir(parents=True, exist_ok=True)
     logo = _abs(root, cfg.get("app", {}).get("icon"))
 
@@ -158,11 +174,12 @@ def main() -> None:
             sys.exit(f"No screenshot with slug {a.slug!r} in the config.")
 
     # Make sure each layout scaffold exists (built by compose.py).
-    missing = [s for s in items if not (root / "work" / s["slug"] / f"{s.get('prompt_layout', a.style)}.png").is_file()]
+    items = [s for s in items if raw_of(s, a.device)]
+    missing = [s for s in items if not (work / s["slug"] / f"{s.get('prompt_layout', a.style)}.png").is_file()]
     if missing:
         from compose import run_config
         for s in missing:
-            run_config(a.config, s["slug"], [s.get("prompt_layout", a.style)])
+            run_config(a.config, s["slug"], [s.get("prompt_layout", a.style)], a.device, a.locale)
 
     sections = []
     for s in items:
@@ -172,8 +189,8 @@ def main() -> None:
         folder.mkdir(parents=True)
         style = s.get("prompt_layout", a.style)
         files = {
-            "layout": _copy(root / "work" / s["slug"] / f"{style}.png", folder, "1-layout"),
-            "screen": _copy_screen(root / s["raw"], folder, "2-screen", cfg, s),
+            "layout": _copy(work / s["slug"] / f"{style}.png", folder, "1-layout"),
+            "screen": _copy_screen(root / raw_of(s, a.device), folder, "2-screen", cfg, s),
             "logo": _copy(logo, folder, "3-logo"),
             "extra": [],
         }
@@ -182,14 +199,14 @@ def main() -> None:
             if name:
                 files["extra"].append(name)
         if not files["screen"]:
-            print(f"[skip] {s['slug']}: raw screenshot not found ({s['raw']})")
+            print(f"[skip] {s['slug']}: raw screenshot not found ({raw_of(s, a.device)})")
             continue
-        text = screen_prompt(cfg, s, files)
+        text = screen_prompt(cfg, s, files, size, work_rel)
         (folder / "prompt.md").write_text(text, encoding="utf-8")
         sections.append(text)
-        print(f"prompts/{s['slug']}/  ({', '.join(sorted(p.name for p in folder.iterdir()))})")
+        print(f"{folder.relative_to(root).as_posix()}/  ({', '.join(sorted(p.name for p in folder.iterdir()))})")
 
-    if not a.no_feature and not a.slug:
+    if not a.no_feature and not a.slug and a.device == "phone":
         folder = out_root / "feature-graphic"
         if folder.exists():
             shutil.rmtree(folder)
@@ -202,10 +219,10 @@ def main() -> None:
             name = _copy_screen(root / p, folder, f"{i}-screen", cfg)
             if name:
                 files["screens"].append(name)
-        text = feature_prompt(cfg, files)
+        text = feature_prompt(cfg, files, out_dir(root, "work", cfg).relative_to(root).as_posix())
         (folder / "prompt.md").write_text(text, encoding="utf-8")
         sections.append(text)
-        print(f"prompts/feature-graphic/  ({', '.join(sorted(p.name for p in folder.iterdir()))})")
+        print(f"{folder.relative_to(root).as_posix()}/  ({', '.join(sorted(p.name for p in folder.iterdir()))})")
 
     if not a.slug:
         intro = (
@@ -215,9 +232,9 @@ def main() -> None:
             "- **A. Layout locked** keeps the phone in place, so the real screen can be pasted back "
             "on top afterwards (`polish.py`). Best for Play's 'show the real app' rule.\n"
             "- **B. Free design** is more creative; check by eye that the app screen was not changed.\n"
-            "- Ask for 9:16 portrait. If the tool can't, any tall image works: it is cropped to 1080x1920.\n\n")
+            f"- Ask for {size[0]}x{size[1]}. If the tool can't, a close shape works: it is cropped to fit.\n\n")
         (out_root / "ALL-PROMPTS.md").write_text(intro + "\n---\n\n".join(sections), encoding="utf-8")
-        print("prompts/ALL-PROMPTS.md")
+        print(f"{out_root.relative_to(root).as_posix()}/ALL-PROMPTS.md")
 
 
 if __name__ == "__main__":
